@@ -299,3 +299,73 @@ export function injectXHR() {
   };
 }
 ```
+
+### 监控白屏
+
+监控白屏主要是通过`elementsFromPoint`方法，获取到当前视口内指定坐标处，由里到外排列的所有元素。
+白屏的判断规则就是：在垂直位置中间通过`elementsFromPoint`获取到 10 个点，在水平位置中间通过`elementsFromPoint`获取到 10 个点,然后判断这 10 个点中有多少个点是`html`,`body`或者其他的大的元素，而没有出现我们渲染的元素，比如如果大于 16 个，就可以视为是白屏了。
+
+```js
+export function blankScreen() {
+  let wrapperElements = ["body", "html", "#container", ".content"];
+  let emptyPoints = 0;
+  function getSelector(element) {
+    if (element.id) {
+      return `#${element.id}`;
+    } else if (element.className && typeof element.className === "string") {
+      return `.${element.className}`;
+    } else {
+      return element.nodeName.toLowerCase();
+    }
+  }
+  function isWrapper(element) {
+    let selector = getSelector(element);
+    if (wrapperElements.indexOf(selector) !== -1) {
+      emptyPoints += 1;
+    }
+  }
+  onload(function() {
+    for (let i = 1; i <= 9; i++) {
+      // 取垂直方向上1/2处的十个点
+      let xElements = document.elementFromPoint(
+        (window.innerWidth * i) / 10,
+        window.innerHeight / 2
+      );
+      // 取水平方向上1/2处的十个点
+      let yElements = document.elementFromPoint(
+        window.innerWidth / 2,
+        (window.innerHeight * i) / 10
+      );
+      isWrapper(xElements);
+      isWrapper(yElements);
+    }
+    if (emptyPoints > 16) {
+      // 总共18个点，其中大于16个点为body,html等元素，可以任务出现白屏了。
+      let centerElements = document.elementFromPoint(
+        window.innerWidth / 2,
+        window.innerHeight / 2
+      );
+      tracker.send({
+        kind: "stability",
+        type: "blank",
+        emptyPoints,
+        screen: window.screen.width + "*" + window.screen.height,
+        viewPort: window.innerWidth + "*" + window.innerHeight,
+        selector: getSelector(centerElements),
+      });
+    }
+  });
+}
+```
+
+这里需要注意的是，我们的 sdk 都是在`head`中进行插入的，也就是先于 dom 加载，但是对于白屏的检测必须等 DOM 加载完毕才能进行处理，因此我们必须在`onload`事件中进行处理。
+
+```js
+export default function(callback) {
+  if (document.readyState === "complete") {
+    callback();
+  } else {
+    window.addEventListener("load", callback);
+  }
+}
+```

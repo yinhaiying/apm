@@ -9,34 +9,32 @@
 <body>
   <div id="container">
     <div class="content">
-      <input id = "successBtn" type="button" value = "ajax success" onclick="sendSuccessAjax()">
-      <input id = "errorBtn" type="button" value = "ajax error" onclick="sendErrorAjax()">
+      <p>测试测试1</p>
+      <p>测试测试2</p>
+      <p>测试测试3</p>
+      <p>测试测试4</p>
+      <p>测试测试5</p>
+      <p>测试测试6</p>
+      <p>测试测试7</p>
+      <p>测试测试8</p>
+      <p>测试测试9</p>
+      <p>测试测试11</p>
+      <p>测试测试12</p>
+      <p>测试测试13</p>
+      <p>测试测试14</p>
+      <p>测试测试15</p>
+      <p>测试测试16</p>
+      <p>测试测试17</p>
+      <p>测试测试18</p>
+      <p>测试测试19</p>
+      <p>测试测试21</p>
+      <p>测试测试22</p>
+      <p>测试测试23</p>
+      <p>测试测试24</p>
     </div>
   </div>
-  <script>
-    function sendSuccessAjax(){
-      let xhr  = new XMLHttpRequest();
-      xhr.open("GET","/success",true);
-      xhr.responseType = "json"
-      xhr.onload = function(){
 
-      }
-      xhr.send();
-    }
 
-    function sendErrorAjax(){
-      let xhr  = new XMLHttpRequest();
-      xhr.open("POST","/error",true);
-      xhr.responseType = "json"
-      xhr.onload = function(){
-          console.log("111")
-      }
-      xhr.onerror = function(error){
-        console.lo("error:",error)
-      }
-      xhr.send("name=hello");
-    }
-  </script>
 
 
 
