@@ -72,3 +72,44 @@ window.addEventListener("error", (event) => {
 ##### 3.1.2 资源异常
 
 监听 `onerror` 事件
+
+### 3.2 错误上报
+
+错误上报，实际上就是把我们的`js`对象上传到服务器，这里我们使用了阿里云免费提供的`SLS`日志服务，
+这里使用的是 http 进行上报，使用了 cors 解决跨域问题，很多人都使用 img 图片进行上报，可以避免跨域问题，但是缺点
+是只支持`GET`请求，不能携带较多的参数。
+
+```js
+class SendTracker {
+  constructor(url) {
+    this.url = `http://${projectName}.${host}/logstores/${logStore}/track`; // 上报路径
+    this.xhr = new XMLHttpRequest();
+  }
+  send(data = {}) {
+    let extraData = getExtraData();
+    let log = { ...extraData, ...data };
+    // 对象的值不能是数字
+    for (let key in log) {
+      if (typeof log[key] === "number") {
+        log[key] = `${log[key.toString()]}`;
+      }
+    }
+    console.log("log:", log);
+    let list = [log];
+
+    let body = JSON.stringify({ __logs__: list });
+    this.xhr.open("POST", this.url, true);
+    this.xhr.setRequestHeader("Content-Type", "application/json"); // 请求体类型
+    this.xhr.setRequestHeader("x-log-apiversion", "0.6.0"); // 请求版本
+    this.xhr.setRequestHeader("x-log-bodyrawsize", body.length); // 请求体大小
+    // this.xhr.setRequestHeader("x-log-compresstype", "lz4");
+    this.xhr.onload = () => {
+      console.log("111:", this.xhr.response);
+    };
+    this.xhr.onerror = (error) => {
+      console.log("222error:", error);
+    };
+    this.xhr.send(body);
+  }
+}
+```

@@ -1,7 +1,7 @@
 
 import getLastEvent from "../../utils/getLastEvent.js"
 import getSelector from "../../utils/getSelector.js"
-
+import tracker from "../../utils/tracker.js"
 
 export function injectJsError() {
   // 监听全局未捕获的错误
@@ -20,6 +20,7 @@ export function injectJsError() {
       // body div#container div.content input
       selector: lastEvent ? getSelector(lastEvent.path) : "",// 最后一个操作的元素
     };
+    tracker.send(log)
   })
 }
 
