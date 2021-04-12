@@ -369,3 +369,43 @@ export default function(callback) {
   }
 }
 ```
+
+### 加载时间
+
+加载时间等参数都是通过`performance.timing`实现的，最主要的是知道每种时间的计算方式。
+
+```js
+export function timing() {
+  onload(function() {
+    setTimeout(() => {
+      const {
+        fetchStart,
+        connectStart,
+        connectEnd,
+        requestStart,
+        responseStart,
+        responseEnd,
+        domLoading, // 开始解析DOM，表示DOM已经解析完成
+        domInteractive,
+        domContentLoadedEventStart,
+        domContentLoadedEventEnd,
+        loadEventStart, // 开始加载DOM，表示DOM已经解析完成
+        loadEventEnd,
+      } = window.performance.timing;
+      tracker.send({
+        kind: "experience",
+        type: "timing", // 统计每个阶段的时间
+        connectTime: connectEnd - connectStart, // 连接时间
+        ttfbTime: responseStart - requestStart, // 首字节时间
+        responseTime: responseEnd - responseStart, // 响应读取时间
+        parseDomTime: loadEventStart - domLoading, // 解析DOM时间
+        domContentLoadedTime:
+          domContentLoadedEventEnd - domContentLoadedEventStart, // 只是DOM完成的时间
+        // load:表示DOM和外联的资源，比如script和link等都加载完成
+        timeToInteractive: domInteractive - fetchStart, // 首次可交互时间，
+        loadTime: loadEventStart - fetchStart, // 完成的加载时间
+      });
+    }, 3000);
+  });
+}
+```
