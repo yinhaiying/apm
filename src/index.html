@@ -13,24 +13,6 @@
       <p>测试测试2</p>
       <p>测试测试3</p>
       <p>测试测试4</p>
-      <p>测试测试5</p>
-      <p>测试测试6</p>
-      <p>测试测试7</p>
-      <p>测试测试8</p>
-      <p>测试测试9</p>
-      <p>测试测试11</p>
-      <p>测试测试12</p>
-      <p>测试测试13</p>
-      <p>测试测试14</p>
-      <p>测试测试15</p>
-      <p>测试测试16</p>
-      <p>测试测试17</p>
-      <p>测试测试18</p>
-      <p>测试测试19</p>
-      <p>测试测试21</p>
-      <p>测试测试22</p>
-      <p>测试测试23</p>
-      <p>测试测试24</p>
     </div>
   </div>
 
@@ -40,6 +22,13 @@
       let startTime = Date.now();
       while((Date.now() - startTime)<1000){}
     })
+
+    setTimeout(() => {
+      let h1 = document.createElement("h1");
+      h1.innerHTML = "如何标记页面中有意义的元素";
+      h1.setAttribute("elementtiming","有意义的绘制");
+      document.body.appendChild(h1);
+    },3000)
   </script>
 
 

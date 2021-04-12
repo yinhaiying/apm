@@ -409,3 +409,71 @@ export function timing() {
   });
 }
 ```
+
+#### FMP 首次有意义的绘制
+
+```js
+new PerformanceObserver((entryList, observer) => {
+  let perfEntries = entryList.getEntries();
+  console.log("perfEntries:", perfEntries);
+  FMP = perfEntries[0];
+  observer.disconnect();
+}).observe({ entryTypes: ["element"] }); // 观察页面中有意义的元素
+```
+
+如何判断什么是有意义的绘制？
+通过设置`elementtiming`设置属性，可以标记页面中的有意义的元素。
+
+```js
+setTimeout(() => {
+  let h1 = document.createElement("h1");
+  h1.innerHTML = "如何标记页面中有意义的元素";
+  h1.setAttribute("elementtiming", "有意义的绘制");
+  document.body.appendChild(h1);
+}, 3000);
+```
+
+#### FID(firstInputDelay) 首次输入延迟的时间
+
+FID：是用户首次交互延迟得到的时间。比如第一次点击或者第一次 input 输入等交互。
+
+```js
+new PerformanceObserver((entryList, observer) => {
+  let firstInput = entryList.getEntries()[0];
+  console.log("firstInput", firstInput);
+  let lastEvent = getLastEvent();
+  if (firstInput) {
+    // processingStart 开始处理的时间
+    // startTime 点击的时间
+    let inputDelay = firstInput.processingStart - firstInput.startTime;
+    let duration = firstInput.duration; // 处理的耗时
+    if (inputDelay > 0 || duration > 0) {
+      tracker.send({
+        kind: "experience",
+        type: "firstInputDelay", // 首次输入延迟
+        inputDelay,
+        duration,
+        startTime: firstInput.startTime,
+        selector: lastEvent
+          ? getSelector(lastEvent.path || lastEvent.target)
+          : "",
+      });
+    }
+  }
+  observer.disconnect();
+}).observe({ type: "first-input", buffered: true }); // 用户的第一次交互，可能是点击页面，也可能是输入内容
+```
+
+#### 上报绘制性能指标
+
+```js
+    tracker.send({
+        kind: "experience",
+        type: "paint",  // 绘制
+        firstPaint: FP.startTime,  // 首次绘制(一般是背景，颜色等)
+        firstContentfulPaint: FCP.startTime,  // 首次内容绘制   绘制内容比如文本等
+        firstMeanintfulPaint: FMP.startTime,  // 首次有意义的绘制，绘制有意义的元素，通过meaningtimeing属性进行设置
+        largestContentfulPaint: LCP.startTime, // 最大内容绘制
+      });
+    }, 3000)
+```
