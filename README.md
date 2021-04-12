@@ -112,6 +112,46 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 ```
 
+3. 资源加载的错误
+   资源加载的错误主要是指`script`,`link`等加载资源时出错。
+   这种资源加载的错误，也可以通过监听`onerror`事件来进行收集，也就是说普通的 js 错误和资源加载错误的事件处理，我们都会放到`onerror`的回调中进行处理，因此，需要进行一下区分。
+
+```js
+window.addEventListener(
+  "error",
+  (event) => {
+    console.log("jserror报错：", event);
+    // 获取到最后一个交互事件
+    let lastEvent = getLastEvent();
+    // 区分一下是资源加载报错还是js报错
+    if (event.target && (event.target.src || event.target.href)) {
+      tracker.send({
+        kind: "stability", // 监控指标的大类
+        type: "error", // 小类型  错误
+        errorType: "resourceError", // 错误类型  js或者css资源加载错误我
+        message: event.message, // 报错信息
+        filename: event.target.src || event.target.href, // 报错文件
+        tagName: event.target.tagName,
+        selector: lastEvent ? getSelector(lastEvent.path) : "", // 最后一个操作的元素
+      });
+    } else {
+      tracker.send({
+        kind: "stability", // 监控指标的大类
+        type: "error", // 小类型  错误
+        errorType: "jsError", // 错误类型  js错误
+        message: event.message, // 报错信息
+        filename: event.filename, // 报错文件
+        position: `${event.lineno}:${event.colno}`,
+        stack: getLines(event.error.stack),
+        // body div#container div.content input
+        selector: getSelector(event.target), // 最后一个操作的元素
+      });
+    }
+  },
+  true
+);
+```
+
 ##### 3.1.2 资源异常
 
 监听 `onerror` 事件

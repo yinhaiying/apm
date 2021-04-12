@@ -6,21 +6,34 @@ import tracker from "../../utils/tracker.js"
 export function injectJsError() {
   // 监听全局未捕获的错误
   window.addEventListener("error", (event) => {
+    console.log("jserror报错：", event)
     // 获取到最后一个交互事件
     let lastEvent = getLastEvent();
-    let log = {
-      kind: "stability",  // 监控指标的大类
-      type: "error",  // 小类型  错误
-      errorType: "jsError",  // 错误类型  js错误
-      message: event.message,  // 报错信息
-      filename: event.filename,  // 报错文件
-      position: `${event.lineno}:${event.colno}`,
-      stack: getLines(event.error.stack),
-      // body div#container div.content input
-      selector: lastEvent ? getSelector(lastEvent.path) : "",// 最后一个操作的元素
-    };
-    tracker.send(log)
-  });
+    // 区分一下是资源加载报错还是js报错
+    if (event.target && (event.target.src || event.target.href)) {
+      tracker.send({
+        kind: "stability",  // 监控指标的大类
+        type: "error",  // 小类型  错误
+        errorType: "resourceError",  // 错误类型  js或者css资源加载错误我
+        message: event.message,  // 报错信息
+        filename: event.target.src || event.target.href,  // 报错文件
+        tagName: event.target.tagName,
+        selector: lastEvent ? getSelector(lastEvent.path) : "",// 最后一个操作的元素
+      });
+    } else {
+      tracker.send({
+        kind: "stability",  // 监控指标的大类
+        type: "error",  // 小类型  错误
+        errorType: "jsError",  // 错误类型  js错误
+        message: event.message,  // 报错信息
+        filename: event.filename,  // 报错文件
+        position: `${event.lineno}:${event.colno}`,
+        stack: getLines(event.error.stack),
+        // body div#container div.content input
+        selector: getSelector(event.target)// 最后一个操作的元素
+      });
+    }
+  }, true);
 
   // 捕捉promise的错误
   window.addEventListener("unhandledrejection", (event) => {
