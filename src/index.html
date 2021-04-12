@@ -15,7 +15,15 @@
   </div>
   <script>
     function errorClick(){
+      // 报错
       window.someVar.error = "error";
+    }
+    function promiseErrorClick(){
+      new Promise((resolve,reject) => {
+        // 报错
+      //  reject("promise报错")  promise报错
+      window.someVar.error = "error";
+      })
     }
   </script>
 

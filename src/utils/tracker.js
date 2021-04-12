@@ -10,7 +10,7 @@ function getExtraData() {
   // userid等信息
   return {
     title: document.title,
-    url: location.url,
+    url: location.href,
     timestamp: Date.now(),
     userAgent: userAgent.parse(navigator.userAgent).name
   }

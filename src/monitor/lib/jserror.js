@@ -12,11 +12,47 @@ export function injectJsError() {
       kind: "stability",  // 监控指标的大类
       type: "error",  // 小类型  错误
       errorType: "jsError",  // 错误类型  js错误
-      url: "",  // 访问哪个页面报错
       message: event.message,  // 报错信息
       filename: event.filename,  // 报错文件
       position: `${event.lineno}:${event.colno}`,
       stack: getLines(event.error.stack),
+      // body div#container div.content input
+      selector: lastEvent ? getSelector(lastEvent.path) : "",// 最后一个操作的元素
+    };
+    tracker.send(log)
+  });
+
+  // 捕捉promise的错误
+  window.addEventListener("unhandledrejection", (event) => {
+    let lastEvent = getLastEvent();
+    console.log("event:", event)
+    let message;
+    let filename;
+    let line = 0;
+    let column = 0;
+    let stack = "";
+    if (typeof event.reason === "string") {
+      // 是promise触发reject导致的报错
+      message = event.reason;
+    } else if (typeof event.reason === "object") {
+      // 是promise中的js语法错误
+      if (event.reason.stack) {
+        let matchResult = event.reason.stack.match(/at\s+(.+):(\d+):(\d+)/);
+        filename = matchResult[1];
+        line = matchResult[2];
+        column = matchResult[0];
+      }
+      message = event.reason.message;
+      stack = getLines(event.reason.stack)
+    }
+    let log = {
+      kind: "stability",  // 监控指标的大类
+      type: "error",  // 小类型  错误
+      errorType: "promiseError",  // 错误类型  js错误
+      message,  // 报错信息
+      filename: filename,  // 报错文件
+      position: `${line}:${column}`,
+      stack,
       // body div#container div.content input
       selector: lastEvent ? getSelector(lastEvent.path) : "",// 最后一个操作的元素
     };

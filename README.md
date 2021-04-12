@@ -50,6 +50,8 @@ js 错误主要分为两种:`js` 错误和`promise` 异常。
 
 **js 错误的收集**
 
+1. 正常的 js 报错。
+
 ```js
 window.addEventListener("error", (event) => {
   // 获取到最后一个交互事件
@@ -66,6 +68,47 @@ window.addEventListener("error", (event) => {
     // body div#container div.content input
     selector: lastEvent ? getSelector(lastEvent.path) : "", // 最后一个操作的元素
   };
+});
+```
+
+2. promise 的未捕获的异常
+   由于`promise`的异常时异步的，通过`window.onerror`无法进行捕获，需要通过专门的 api 进行错误捕获，这个事件就是`unhandledrejection`，而且上报的数据中，一些参数也需要进行处理，比如错误原因`reason`，行，列等都需要进行处理。
+
+```js
+window.addEventListener("unhandledrejection", (event) => {
+  let lastEvent = getLastEvent();
+  console.log("event:", event);
+  let message;
+  let filename;
+  let line = 0;
+  let column = 0;
+  let stack = "";
+  if (typeof event.reason === "string") {
+    // 是promise触发reject导致的报错
+    message = event.reason;
+  } else if (typeof event.reason === "object") {
+    // 是promise中的js语法错误
+    if (event.reason.stack) {
+      let matchResult = event.reason.stack.match(/at\s+(.+):(\d+):(\d+)/);
+      filename = matchResult[1];
+      line = matchResult[2];
+      column = matchResult[0];
+    }
+    message = event.stack.message;
+    stack = getLines(event.reason.stack);
+  }
+  let log = {
+    kind: "stability", // 监控指标的大类
+    type: "error", // 小类型  错误
+    errorType: "promiseError", // 错误类型  js错误
+    message, // 报错信息
+    filename: filename, // 报错文件
+    position: `${line}:${column}`,
+    stack,
+    // body div#container div.content input
+    selector: lastEvent ? getSelector(lastEvent.path) : "", // 最后一个操作的元素
+  };
+  tracker.send(log);
 });
 ```
 
