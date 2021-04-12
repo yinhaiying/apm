@@ -156,7 +156,7 @@ window.addEventListener(
 
 监听 `onerror` 事件
 
-### 3.2 错误上报
+#### 3.2 错误上报
 
 错误上报，实际上就是把我们的`js`对象上传到服务器，这里我们使用了阿里云免费提供的`SLS`日志服务，
 这里使用的是 http 进行上报，使用了 cors 解决跨域问题，很多人都使用 img 图片进行上报，可以避免跨域问题，但是缺点
@@ -194,5 +194,108 @@ class SendTracker {
     };
     this.xhr.send(body);
   }
+}
+```
+
+### 监控接口异常
+
+接口异常的监控，主要是在接口请求时除了原来的接口请求还要写入一些我们想要的参数，比如计算接口的请求时间，接口的错误类型等信息收集，因此，我们需要重写 ajax 请求的方法。
+
+重写 open 方法，在重写时注入`method`,`url`和`async的参数`。
+
+```js
+let XMLHttpRequet = window.XMLHttpRequest;
+let oldOpen = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function(method, url, async) {
+  if (!url.match(/logstores/)) {
+    this.logData = {
+      method,
+      url,
+      async,
+    };
+  }
+  return oldOpen.apply(this, arguments);
+};
+```
+
+重写`send`方法，也就是重写`load`,`error`和`abort`方法
+
+```js
+function injectXHR() {
+  let oldSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function(body) {
+    if (this.logData) {
+      let startTime = Date.now(); // 发送之前记录开始时间
+      let handler = (type) => {
+        return (event) => {
+          let duration = Date.now() - startTime;
+          let status = this.status;
+          let statusText = this.statusText;
+          console.log("这里执行了吗");
+          tracker.send({
+            kind: "stability",
+            type: "xhr",
+            eventType: type,
+            pathname: this.logData.url,
+            status: status + "-" + statusText,
+            duration,
+            response: this.response ? JSON.stringify(this.response) : "",
+            params: body || "",
+          });
+        };
+      };
+      this.addEventListener("load", handler("load"), false);
+      this.addEventListener("error", handler("error"), false);
+      this.addEventListener("abort", handler("abort"), false);
+    }
+    return oldSend.apply(this, arguments);
+  };
+}
+```
+
+最终的完整实现：
+
+```js
+export function injectXHR() {
+  let XMLHttpRequet = window.XMLHttpRequest;
+  let oldOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, async) {
+    if (!url.match(/logstores/)) {
+      this.logData = {
+        method,
+        url,
+        async,
+      };
+    }
+    return oldOpen.apply(this, arguments);
+  };
+  let oldSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function(body) {
+    if (this.logData) {
+      let startTime = Date.now(); // 发送之前记录开始时间
+      let handler = (type) => {
+        return (event) => {
+          let duration = Date.now() - startTime;
+          let status = this.status;
+          let statusText = this.statusText;
+          console.log("这里执行了吗");
+          tracker.send({
+            kind: "stability",
+            type: "xhr",
+            eventType: type,
+            pathname: this.logData.url,
+            status: status + "-" + statusText,
+            duration,
+            response: this.response ? JSON.stringify(this.response) : "",
+            params: body || "",
+          });
+        };
+      };
+      this.addEventListener("load", handler("load"), false);
+      this.addEventListener("error", handler("error"), false);
+      this.addEventListener("abort", handler("abort"), false);
+    }
+    return oldSend.apply(this, arguments);
+  };
 }
 ```
